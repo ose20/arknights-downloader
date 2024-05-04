@@ -91,10 +91,28 @@ impl TargetConfig {
                     response.copy_to(&mut file)?;
                 }
             }
-            Target::Valuable => {}
-            Target::Material => {}
-            Target::ExpArts => {}
-            Target::Soc => {}
+            Target::Valuable | Target::Material | Target::ExpArts | Target::Soc => {
+                fs::create_dir_all(&self.tar_dir)?;
+                let client = Client::new();
+                let response = client
+                    .get(&self.src_url)
+                    .header(reqwest::header::USER_AGENT, AGENT)
+                    .send()?;
+
+                let document = Html::parse_document(&response.text()?);
+                let img_elts = self.select_elemtens(&document);
+                for img_elt in img_elts {
+                    let img_src = img_elt.value().attr("data-src").unwrap();
+                    let img_url = Url::parse(BASE_URL)?.join(img_src)?;
+                    let filename = sanitize_filename(img_elt.value().attr("title").unwrap());
+                    let ext = Path::new(img_src).extension().unwrap().to_str().unwrap();
+
+                    let mut response = client.get(img_url).send()?;
+                    let mut file =
+                        fs::File::create(format!("{}/{}.{}", self.tar_dir, filename, ext))?;
+                    response.copy_to(&mut file)?;
+                }
+            }
         }
 
         Ok(())
@@ -112,17 +130,10 @@ impl TargetConfig {
                 let selector = Selector::parse(&css_selector).unwrap();
                 document.select(&selector).collect()
             }
-            Target::Valuable => {
-                unimplemented!()
-            }
-            Target::Material => {
-                unimplemented!()
-            }
-            Target::ExpArts => {
-                unimplemented!()
-            }
-            Target::Soc => {
-                unimplemented!()
+            Target::Valuable | Target::Material | Target::ExpArts | Target::Soc => {
+                let css_selector = "#sortabletable1 img.lazyload[data-src]";
+                let selector = Selector::parse(&css_selector).unwrap();
+                document.select(&selector).collect()
             }
         }
     }
