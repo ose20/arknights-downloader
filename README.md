@@ -1,0 +1,2 @@
+# Arknights Downloader
+アークナイツの攻略wikiからオペレータや素材の画像をダウンロードするCLIツール
